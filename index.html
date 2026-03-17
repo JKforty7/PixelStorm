@@ -5,16 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PixelStorm</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Chakra+Petch:wght@400;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Chakra+Petch:wght@300;400;600;700&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --bg: #0a0a0f;
+    --bg: #06060c;
     --neon-cyan: #00f0ff;
     --neon-magenta: #ff00aa;
-    --card-bg: #12121a;
-    --card-border: #1e1e2e;
+    --neon-green: #39ff14;
+    --neon-orange: #ff6a00;
+    --neon-purple: #b44aff;
+    --neon-blue: #4488ff;
+    --neon-pink: #ff3399;
+    --neon-yellow: #ffe600;
+    --card-bg: rgba(14, 14, 22, 0.85);
+    --card-border: rgba(255,255,255,0.05);
   }
 
   body {
@@ -25,303 +31,696 @@
     overflow-x: hidden;
   }
 
+  /* Scanlines */
   body::after {
     content: '';
     position: fixed;
     inset: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
     pointer-events: none;
-    z-index: 100;
+    z-index: 200;
   }
 
-  .bg-grid {
+  /* Starfield canvas */
+  #stars {
     position: fixed;
     inset: 0;
-    background-image:
-      linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    animation: gridScroll 20s linear infinite;
     z-index: 0;
   }
 
-  @keyframes gridScroll {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(40px, 40px); }
+  /* Gradient fog overlays */
+  .fog-top {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 300px;
+    background: radial-gradient(ellipse 80% 100% at 50% 0%, rgba(0,240,255,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .fog-bottom {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 200px;
+    background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(255,0,170,0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
   }
 
   .container {
     position: relative;
-    z-index: 1;
-    max-width: 860px;
+    z-index: 2;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 60px 24px 80px;
+    padding: 0 24px 100px;
+  }
+
+  /* ===== HERO ===== */
+  .hero {
+    min-height: 60vh;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 80px 0 40px;
+    position: relative;
+  }
+
+  /* Glitch logo */
+  .logo-wrap {
+    position: relative;
+    margin-bottom: 20px;
   }
 
   .logo {
     font-family: 'Press Start 2P', monospace;
-    font-size: clamp(28px, 6vw, 48px);
-    text-align: center;
-    margin-bottom: 12px;
-    animation: logoGlow 3s ease-in-out infinite alternate;
+    font-size: clamp(32px, 7vw, 58px);
+    line-height: 1.2;
+    position: relative;
   }
 
   .logo .pixel { color: var(--neon-cyan); }
   .logo .storm { color: var(--neon-magenta); }
 
-  @keyframes logoGlow {
-    0% { text-shadow: 0 0 10px rgba(0,240,255,0.4), 0 0 30px rgba(0,240,255,0.15); }
-    100% { text-shadow: 0 0 15px rgba(255,0,170,0.4), 0 0 40px rgba(255,0,170,0.15); }
+  .logo-wrap::before,
+  .logo-wrap::after {
+    content: attr(data-text);
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(32px, 7vw, 58px);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .logo-wrap::before {
+    color: var(--neon-cyan);
+    text-shadow: -2px 0 var(--neon-magenta);
+    animation: glitch1 4s infinite linear alternate;
+    clip-path: inset(0 0 65% 0);
+  }
+
+  .logo-wrap::after {
+    color: var(--neon-magenta);
+    text-shadow: 2px 0 var(--neon-cyan);
+    animation: glitch2 4s infinite linear alternate;
+    clip-path: inset(65% 0 0 0);
+  }
+
+  @keyframes glitch1 {
+    0%, 90%, 100% { transform: translate(0); }
+    92% { transform: translate(-3px, 1px); }
+    94% { transform: translate(2px, -1px); }
+    96% { transform: translate(-1px, 2px); }
+  }
+
+  @keyframes glitch2 {
+    0%, 88%, 100% { transform: translate(0); }
+    90% { transform: translate(3px, -1px); }
+    93% { transform: translate(-2px, 1px); }
+    95% { transform: translate(1px, -2px); }
+  }
+
+  .logo-glow {
+    position: absolute;
+    inset: -40px -60px;
+    background: radial-gradient(ellipse at center, rgba(0,240,255,0.08) 0%, rgba(255,0,170,0.04) 40%, transparent 70%);
+    filter: blur(30px);
+    pointer-events: none;
+    animation: pulseGlow 4s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulseGlow {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
   }
 
   .tagline {
-    font-size: 14px;
-    letter-spacing: 4px;
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 300;
+    font-size: clamp(13px, 2.5vw, 16px);
+    letter-spacing: 6px;
     text-transform: uppercase;
-    color: #555;
-    margin-bottom: 50px;
-    text-align: center;
+    color: rgba(255,255,255,0.25);
+    margin-bottom: 12px;
   }
 
-  .category {
-    width: 100%;
-    margin-bottom: 36px;
-  }
-
-  .category-title {
+  .game-count {
     font-family: 'Press Start 2P', monospace;
-    font-size: 10px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-bottom: 14px;
-    padding-left: 4px;
+    font-size: 9px;
+    color: rgba(255,255,255,0.15);
+    letter-spacing: 2px;
+    margin-bottom: 40px;
+  }
+  .game-count span { color: var(--neon-cyan); }
+
+  .scroll-hint {
+    animation: bounce 2s ease-in-out infinite;
+    color: rgba(255,255,255,0.12);
+    font-size: 20px;
+    margin-top: 20px;
   }
 
-  .cat-action { color: #ff4444; }
-  .cat-arcade { color: #ff6a00; }
-  .cat-puzzle { color: #b44aff; }
-  .cat-classic { color: #4488ff; }
-  .cat-reflex { color: #ff3399; }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(8px); }
+  }
 
-  .games-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  /* ===== GAMES GRID ===== */
+  .section-label {
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 300;
+    font-size: 11px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.15);
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
     gap: 16px;
     width: 100%;
   }
 
-  .game-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    padding: 24px 22px;
-    text-decoration: none;
-    color: #e0e0e0;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.25s ease, border-color 0.3s ease;
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
   }
 
-  .game-card:hover { transform: translateY(-3px); }
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+    width: 100%;
+    margin-bottom: 60px;
+  }
 
+  /* ===== GAME CARD ===== */
+  .game-card {
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 28px 24px 24px;
+    text-decoration: none;
+    color: #e0e0e0;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1), border-color 0.4s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .game-card:hover {
+    transform: translateY(-6px) scale(1.01);
+  }
+
+  /* Top accent bar */
   .game-card::before {
     content: '';
     position: absolute;
-    top: 0; left: 0;
-    width: 100%;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    opacity: 0.7;
+    transition: opacity 0.3s, height 0.3s;
+  }
+
+  .game-card:hover::before {
+    opacity: 1;
     height: 3px;
   }
 
-  .game-card:hover .play-label { opacity: 1; }
-
-  .c-shooter::before { background: #00f0ff; }
-  .c-shooter:hover { border-color: rgba(0,240,255,0.3); }
-  .c-shooter .game-title { color: #00f0ff; }
-  .c-shooter .play-label { color: #00f0ff; border-color: rgba(0,240,255,0.3); }
-  .c-shooter:hover .play-label { background: rgba(0,240,255,0.1); }
-
-  .c-asteroids::before { background: #4488ff; }
-  .c-asteroids:hover { border-color: rgba(68,136,255,0.3); }
-  .c-asteroids .game-title { color: #4488ff; }
-  .c-asteroids .play-label { color: #4488ff; border-color: rgba(68,136,255,0.3); }
-  .c-asteroids:hover .play-label { background: rgba(68,136,255,0.1); }
-
-  .c-snake::before { background: #39ff14; }
-  .c-snake:hover { border-color: rgba(57,255,20,0.3); }
-  .c-snake .game-title { color: #39ff14; }
-  .c-snake .play-label { color: #39ff14; border-color: rgba(57,255,20,0.3); }
-  .c-snake:hover .play-label { background: rgba(57,255,20,0.1); }
-
-  .c-breakout::before { background: #ff6a00; }
-  .c-breakout:hover { border-color: rgba(255,106,0,0.3); }
-  .c-breakout .game-title { color: #ff6a00; }
-  .c-breakout .play-label { color: #ff6a00; border-color: rgba(255,106,0,0.3); }
-  .c-breakout:hover .play-label { background: rgba(255,106,0,0.1); }
-
-  .c-minesweeper::before { background: #b44aff; }
-  .c-minesweeper:hover { border-color: rgba(180,74,255,0.3); }
-  .c-minesweeper .game-title { color: #b44aff; }
-  .c-minesweeper .play-label { color: #b44aff; border-color: rgba(180,74,255,0.3); }
-  .c-minesweeper:hover .play-label { background: rgba(180,74,255,0.1); }
-
-  .c-2048::before { background: #ffe600; }
-  .c-2048:hover { border-color: rgba(255,230,0,0.3); }
-  .c-2048 .game-title { color: #ffe600; }
-  .c-2048 .play-label { color: #ffe600; border-color: rgba(255,230,0,0.3); }
-  .c-2048:hover .play-label { background: rgba(255,230,0,0.1); }
-
-  .c-tictactoe::before { background: #ff00aa; }
-  .c-tictactoe:hover { border-color: rgba(255,0,170,0.3); }
-  .c-tictactoe .game-title { color: #ff00aa; }
-  .c-tictactoe .play-label { color: #ff00aa; border-color: rgba(255,0,170,0.3); }
-  .c-tictactoe:hover .play-label { background: rgba(255,0,170,0.1); }
-
-  .c-whack::before { background: #ff3399; }
-  .c-whack:hover { border-color: rgba(255,51,153,0.3); }
-  .c-whack .game-title { color: #ff3399; }
-  .c-whack .play-label { color: #ff3399; border-color: rgba(255,51,153,0.3); }
-  .c-whack:hover .play-label { background: rgba(255,51,153,0.1); }
-
-  .game-icon { font-size: 28px; margin-bottom: 12px; display: block; }
-
-  .game-title {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 12px;
-    margin-bottom: 8px;
-    line-height: 1.6;
-  }
-
-  .game-desc { font-size: 13px; color: #666; line-height: 1.5; }
-
-  .play-label {
-    display: inline-block;
-    margin-top: 16px;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 9px;
-    letter-spacing: 2px;
-    padding: 6px 14px;
-    border-radius: 4px;
-    border: 1px solid;
-    opacity: 0.6;
-    transition: opacity 0.2s, background 0.2s;
-  }
-
-  .footer {
-    margin-top: 60px;
-    font-size: 12px;
-    color: #333;
-    text-align: center;
-    letter-spacing: 1px;
-  }
-
-  .game-card {
+  /* Hover glow */
+  .game-card::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%;
+    height: 200%;
     opacity: 0;
-    transform: translateY(16px);
-    animation: fadeUp 0.4s ease forwards;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
   }
 
-  @keyframes fadeUp {
-    to { opacity: 1; transform: translateY(0); }
+  .game-card:hover::after {
+    opacity: 1;
   }
 
-  .category:nth-child(2) .game-card:nth-child(1) { animation-delay: 0.08s; }
-  .category:nth-child(2) .game-card:nth-child(2) { animation-delay: 0.16s; }
-  .category:nth-child(3) .game-card:nth-child(1) { animation-delay: 0.12s; }
-  .category:nth-child(3) .game-card:nth-child(2) { animation-delay: 0.20s; }
-  .category:nth-child(4) .game-card:nth-child(1) { animation-delay: 0.16s; }
-  .category:nth-child(4) .game-card:nth-child(2) { animation-delay: 0.24s; }
-  .category:nth-child(5) .game-card:nth-child(1) { animation-delay: 0.20s; }
-  .category:nth-child(6) .game-card:nth-child(1) { animation-delay: 0.24s; }
+  /* Pixel icon */
+  .px-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 1px;
+    opacity: 0.85;
+  }
+
+  .px-icon .p {
+    border-radius: 1px;
+  }
+
+  .game-tag {
+    display: inline-block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 3px;
+    margin-bottom: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .game-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 8px;
+    transition: text-shadow 0.3s;
+  }
+
+  .game-desc {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+
+  .play-link {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.4;
+    transition: opacity 0.3s, letter-spacing 0.3s;
+  }
+
+  .game-card:hover .play-link {
+    opacity: 1;
+    letter-spacing: 5px;
+  }
+
+  /* ===== PER-GAME COLORS ===== */
+  .c-shooter::before { background: linear-gradient(90deg, var(--neon-cyan), transparent); }
+  .c-shooter::after { background: radial-gradient(circle at 50% 0%, rgba(0,240,255,0.06), transparent 60%); }
+  .c-shooter:hover { border-color: rgba(0,240,255,0.2); }
+  .c-shooter .game-name { color: var(--neon-cyan); }
+  .c-shooter:hover .game-name { text-shadow: 0 0 20px rgba(0,240,255,0.3); }
+  .c-shooter .game-tag { color: var(--neon-cyan); border-color: rgba(0,240,255,0.15); }
+  .c-shooter .play-link { color: var(--neon-cyan); }
+
+  .c-asteroids::before { background: linear-gradient(90deg, var(--neon-blue), transparent); }
+  .c-asteroids::after { background: radial-gradient(circle at 50% 0%, rgba(68,136,255,0.06), transparent 60%); }
+  .c-asteroids:hover { border-color: rgba(68,136,255,0.2); }
+  .c-asteroids .game-name { color: var(--neon-blue); }
+  .c-asteroids:hover .game-name { text-shadow: 0 0 20px rgba(68,136,255,0.3); }
+  .c-asteroids .game-tag { color: var(--neon-blue); border-color: rgba(68,136,255,0.15); }
+  .c-asteroids .play-link { color: var(--neon-blue); }
+
+  .c-snake::before { background: linear-gradient(90deg, var(--neon-green), transparent); }
+  .c-snake::after { background: radial-gradient(circle at 50% 0%, rgba(57,255,20,0.06), transparent 60%); }
+  .c-snake:hover { border-color: rgba(57,255,20,0.2); }
+  .c-snake .game-name { color: var(--neon-green); }
+  .c-snake:hover .game-name { text-shadow: 0 0 20px rgba(57,255,20,0.3); }
+  .c-snake .game-tag { color: var(--neon-green); border-color: rgba(57,255,20,0.15); }
+  .c-snake .play-link { color: var(--neon-green); }
+
+  .c-breakout::before { background: linear-gradient(90deg, var(--neon-orange), transparent); }
+  .c-breakout::after { background: radial-gradient(circle at 50% 0%, rgba(255,106,0,0.06), transparent 60%); }
+  .c-breakout:hover { border-color: rgba(255,106,0,0.2); }
+  .c-breakout .game-name { color: var(--neon-orange); }
+  .c-breakout:hover .game-name { text-shadow: 0 0 20px rgba(255,106,0,0.3); }
+  .c-breakout .game-tag { color: var(--neon-orange); border-color: rgba(255,106,0,0.15); }
+  .c-breakout .play-link { color: var(--neon-orange); }
+
+  .c-minesweeper::before { background: linear-gradient(90deg, var(--neon-purple), transparent); }
+  .c-minesweeper::after { background: radial-gradient(circle at 50% 0%, rgba(180,74,255,0.06), transparent 60%); }
+  .c-minesweeper:hover { border-color: rgba(180,74,255,0.2); }
+  .c-minesweeper .game-name { color: var(--neon-purple); }
+  .c-minesweeper:hover .game-name { text-shadow: 0 0 20px rgba(180,74,255,0.3); }
+  .c-minesweeper .game-tag { color: var(--neon-purple); border-color: rgba(180,74,255,0.15); }
+  .c-minesweeper .play-link { color: var(--neon-purple); }
+
+  .c-2048::before { background: linear-gradient(90deg, var(--neon-yellow), transparent); }
+  .c-2048::after { background: radial-gradient(circle at 50% 0%, rgba(255,230,0,0.06), transparent 60%); }
+  .c-2048:hover { border-color: rgba(255,230,0,0.2); }
+  .c-2048 .game-name { color: var(--neon-yellow); }
+  .c-2048:hover .game-name { text-shadow: 0 0 20px rgba(255,230,0,0.3); }
+  .c-2048 .game-tag { color: var(--neon-yellow); border-color: rgba(255,230,0,0.15); }
+  .c-2048 .play-link { color: var(--neon-yellow); }
+
+  .c-tictactoe::before { background: linear-gradient(90deg, var(--neon-magenta), transparent); }
+  .c-tictactoe::after { background: radial-gradient(circle at 50% 0%, rgba(255,0,170,0.06), transparent 60%); }
+  .c-tictactoe:hover { border-color: rgba(255,0,170,0.2); }
+  .c-tictactoe .game-name { color: var(--neon-magenta); }
+  .c-tictactoe:hover .game-name { text-shadow: 0 0 20px rgba(255,0,170,0.3); }
+  .c-tictactoe .game-tag { color: var(--neon-magenta); border-color: rgba(255,0,170,0.15); }
+  .c-tictactoe .play-link { color: var(--neon-magenta); }
+
+  .c-whack::before { background: linear-gradient(90deg, var(--neon-pink), transparent); }
+  .c-whack::after { background: radial-gradient(circle at 50% 0%, rgba(255,51,153,0.06), transparent 60%); }
+  .c-whack:hover { border-color: rgba(255,51,153,0.2); }
+  .c-whack .game-name { color: var(--neon-pink); }
+  .c-whack:hover .game-name { text-shadow: 0 0 20px rgba(255,51,153,0.3); }
+  .c-whack .game-tag { color: var(--neon-pink); border-color: rgba(255,51,153,0.15); }
+  .c-whack .play-link { color: var(--neon-pink); }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    text-align: center;
+    padding: 40px 0;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .footer-logo {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    margin-bottom: 8px;
+  }
+  .footer-logo .fp { color: rgba(0,240,255,0.25); }
+  .footer-logo .fs { color: rgba(255,0,170,0.25); }
+
+  .footer-copy {
+    font-size: 11px;
+    color: rgba(255,255,255,0.1);
+    letter-spacing: 2px;
+  }
+
+  /* ===== SCROLL REVEAL ===== */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s cubic-bezier(0.19, 1, 0.22, 1), transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .reveal-delay-1 { transition-delay: 0.08s; }
+  .reveal-delay-2 { transition-delay: 0.16s; }
+  .reveal-delay-3 { transition-delay: 0.24s; }
+  .reveal-delay-4 { transition-delay: 0.32s; }
+  .reveal-delay-5 { transition-delay: 0.40s; }
+  .reveal-delay-6 { transition-delay: 0.48s; }
+  .reveal-delay-7 { transition-delay: 0.56s; }
+  .reveal-delay-8 { transition-delay: 0.64s; }
+
+  /* Hero entrance */
+  .hero-enter {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+    animation: heroIn 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  }
+  .hero-enter.d1 { animation-delay: 0.1s; }
+  .hero-enter.d2 { animation-delay: 0.3s; }
+  .hero-enter.d3 { animation-delay: 0.45s; }
+  .hero-enter.d4 { animation-delay: 0.6s; }
+
+  @keyframes heroIn {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @media (max-width: 600px) {
+    .games-grid {
+      grid-template-columns: 1fr;
+    }
+    .hero { min-height: 50vh; padding: 60px 0 30px; }
+  }
 </style>
 </head>
 <body>
-  <div class="bg-grid"></div>
-  <div class="container">
-    <h1 class="logo"><span class="pixel">Pixel</span><span class="storm">Storm</span></h1>
-    <p class="tagline">Browser-based retro games</p>
 
-    <div class="category">
-      <div class="category-title cat-action">Action</div>
-      <div class="games-row">
-        <a href="shooter.html" class="game-card c-shooter">
-          <span class="game-icon">🔫</span>
-          <div class="game-title">Pixel Storm Shooter</div>
-          <div class="game-desc">Top-down 2D shooter. Survive waves of enemies.</div>
-          <span class="play-label">▶ PLAY</span>
-        </a>
-        <a href="asteroids.html" class="game-card c-asteroids">
-          <span class="game-icon">☄️</span>
-          <div class="game-title">Asteroids</div>
-          <div class="game-desc">Pilot your ship. Blast rocks. Don't get hit.</div>
-          <span class="play-label">▶ PLAY</span>
-        </a>
-      </div>
+<canvas id="stars"></canvas>
+<div class="fog-top"></div>
+<div class="fog-bottom"></div>
+
+<div class="container">
+  <div class="hero">
+    <div class="logo-wrap hero-enter d1" data-text="PixelStorm">
+      <div class="logo-glow"></div>
+      <h1 class="logo"><span class="pixel">Pixel</span><span class="storm">Storm</span></h1>
     </div>
-
-    <div class="category">
-      <div class="category-title cat-arcade">Arcade</div>
-      <div class="games-row">
-        <a href="snake.html" class="game-card c-snake">
-          <span class="game-icon">🐍</span>
-          <div class="game-title">Snake</div>
-          <div class="game-desc">Eat. Grow. Don't crash into yourself.</div>
-          <span class="play-label">▶ PLAY</span>
-        </a>
-        <a href="breakout.html" class="game-card c-breakout">
-          <span class="game-icon">🧱</span>
-          <div class="game-title">Breakout</div>
-          <div class="game-desc">Smash bricks with a bouncing ball.</div>
-          <span class="play-label">▶ PLAY</span>
-        </a>
-      </div>
-    </div>
-
-    <div class="category">
-      <div class="category-title cat-puzzle">Puzzle</div>
-      <div class="games-row">
-        <a href="minesweeper.html" class="game-card c-minesweeper">
-          <span class="game-icon">💣</span>
-          <div class="game-title">Minesweeper</div>
-          <div class="game-desc">Clear the board. Avoid the mines.</div>
-          <span class="play-label">▶ PLAY</span>
-        </a>
-        <a href="2048.html" class="game-card c-2048">
-          <span class="game-icon">🔢</span>
-          <div class="game-title">2048</div>
-          <div class="game-desc">Slide and merge tiles to reach 2048.</div>
-          <span class="play-label">▶ PLAY</span>
-        </a>
-      </div>
-    </div>
-
-    <div class="category">
-      <div class="category-title cat-classic">Classic</div>
-      <div class="games-row">
-        <a href="tictactoe.html" class="game-card c-tictactoe">
-          <span class="game-icon">⭕</span>
-          <div class="game-title">Tic Tac Toe</div>
-          <div class="game-desc">The classic strategy game for two.</div>
-          <span class="play-label">▶ PLAY</span>
-        </a>
-      </div>
-    </div>
-
-    <div class="category">
-      <div class="category-title cat-reflex">Reflex</div>
-      <div class="games-row">
-        <a href="whackamole.html" class="game-card c-whack">
-          <span class="game-icon">🔨</span>
-          <div class="game-title">Whack-a-Mole</div>
-          <div class="game-desc">30 seconds. Smash as many moles as you can.</div>
-          <span class="play-label">▶ PLAY</span>
-        </a>
-      </div>
-    </div>
-
-    <div class="footer">PIXELSTORM © 2026</div>
+    <p class="tagline hero-enter d2">Browser-based retro games</p>
+    <p class="game-count hero-enter d3"><span>8</span> games &middot; zero installs &middot; pure html</p>
+    <div class="scroll-hint hero-enter d4">&#9660;</div>
   </div>
+
+  <div class="section-label reveal">Select a game</div>
+
+  <div class="games-grid">
+
+    <!-- Shooter -->
+    <a href="shooter.html" class="game-card c-shooter reveal reveal-delay-1">
+      <div class="px-icon">
+        <div class="p" style="grid-column:3;grid-row:1;background:#00f0ff"></div>
+        <div class="p" style="grid-column:2;grid-row:2;background:#00f0ff"></div>
+        <div class="p" style="grid-column:3;grid-row:2;background:#00d4e0"></div>
+        <div class="p" style="grid-column:4;grid-row:2;background:#00f0ff"></div>
+        <div class="p" style="grid-column:1;grid-row:3;background:#00f0ff"></div>
+        <div class="p" style="grid-column:2;grid-row:3;background:#00d4e0"></div>
+        <div class="p" style="grid-column:3;grid-row:3;background:#00bcd4"></div>
+        <div class="p" style="grid-column:4;grid-row:3;background:#00d4e0"></div>
+        <div class="p" style="grid-column:5;grid-row:3;background:#00f0ff"></div>
+        <div class="p" style="grid-column:2;grid-row:4;background:#00f0ff"></div>
+        <div class="p" style="grid-column:4;grid-row:4;background:#00f0ff"></div>
+        <div class="p" style="grid-column:3;grid-row:5;background:#ff3366"></div>
+      </div>
+      <div class="game-tag">Action</div>
+      <div class="game-name">Pixel Storm Shooter</div>
+      <div class="game-desc">Top-down 2D shooter. Survive incoming waves of enemies.</div>
+      <div class="play-link">▸ Play</div>
+    </a>
+
+    <!-- Asteroids -->
+    <a href="asteroids.html" class="game-card c-asteroids reveal reveal-delay-2">
+      <div class="px-icon">
+        <div class="p" style="grid-column:2;grid-row:1;background:#4488ff"></div>
+        <div class="p" style="grid-column:3;grid-row:1;background:#4488ff"></div>
+        <div class="p" style="grid-column:1;grid-row:2;background:#4488ff"></div>
+        <div class="p" style="grid-column:4;grid-row:2;background:#3366cc"></div>
+        <div class="p" style="grid-column:1;grid-row:3;background:#3366cc"></div>
+        <div class="p" style="grid-column:5;grid-row:3;background:#4488ff"></div>
+        <div class="p" style="grid-column:2;grid-row:4;background:#4488ff"></div>
+        <div class="p" style="grid-column:4;grid-row:4;background:#3366cc"></div>
+        <div class="p" style="grid-column:5;grid-row:4;background:#4488ff"></div>
+        <div class="p" style="grid-column:3;grid-row:5;background:#4488ff"></div>
+        <div class="p" style="grid-column:4;grid-row:5;background:#4488ff"></div>
+      </div>
+      <div class="game-tag">Action</div>
+      <div class="game-name">Asteroids</div>
+      <div class="game-desc">Pilot your ship through space. Blast rocks before they hit you.</div>
+      <div class="play-link">▸ Play</div>
+    </a>
+
+    <!-- Snake -->
+    <a href="snake.html" class="game-card c-snake reveal reveal-delay-3">
+      <div class="px-icon">
+        <div class="p" style="grid-column:1;grid-row:1;background:#39ff14"></div>
+        <div class="p" style="grid-column:2;grid-row:1;background:#30dd12"></div>
+        <div class="p" style="grid-column:3;grid-row:1;background:#28bb10"></div>
+        <div class="p" style="grid-column:3;grid-row:2;background:#28bb10"></div>
+        <div class="p" style="grid-column:3;grid-row:3;background:#30dd12"></div>
+        <div class="p" style="grid-column:4;grid-row:3;background:#39ff14"></div>
+        <div class="p" style="grid-column:5;grid-row:3;background:#39ff14"></div>
+        <div class="p" style="grid-column:5;grid-row:4;background:#30dd12"></div>
+        <div class="p" style="grid-column:5;grid-row:5;background:#28bb10"></div>
+        <div class="p" style="grid-column:2;grid-row:5;background:#ff3366"></div>
+      </div>
+      <div class="game-tag">Arcade</div>
+      <div class="game-name">Snake</div>
+      <div class="game-desc">Eat. Grow longer. Don't crash into yourself.</div>
+      <div class="play-link">▸ Play</div>
+    </a>
+
+    <!-- Breakout -->
+    <a href="breakout.html" class="game-card c-breakout reveal reveal-delay-4">
+      <div class="px-icon">
+        <div class="p" style="grid-column:1;grid-row:1;background:#ff3366"></div>
+        <div class="p" style="grid-column:2;grid-row:1;background:#ff3366"></div>
+        <div class="p" style="grid-column:3;grid-row:1;background:#ff3366"></div>
+        <div class="p" style="grid-column:4;grid-row:1;background:#ff3366"></div>
+        <div class="p" style="grid-column:5;grid-row:1;background:#ff3366"></div>
+        <div class="p" style="grid-column:1;grid-row:2;background:#ff6a00"></div>
+        <div class="p" style="grid-column:2;grid-row:2;background:#ff6a00"></div>
+        <div class="p" style="grid-column:3;grid-row:2;background:#ff6a00"></div>
+        <div class="p" style="grid-column:4;grid-row:2;background:#ff6a00"></div>
+        <div class="p" style="grid-column:5;grid-row:2;background:#ff6a00"></div>
+        <div class="p" style="grid-column:3;grid-row:4;background:#fff"></div>
+        <div class="p" style="grid-column:2;grid-row:5;background:#e0e0e0"></div>
+        <div class="p" style="grid-column:3;grid-row:5;background:#e0e0e0"></div>
+        <div class="p" style="grid-column:4;grid-row:5;background:#e0e0e0"></div>
+      </div>
+      <div class="game-tag">Arcade</div>
+      <div class="game-name">Breakout</div>
+      <div class="game-desc">Smash rows of coloured bricks with a bouncing ball.</div>
+      <div class="play-link">▸ Play</div>
+    </a>
+
+    <!-- Minesweeper -->
+    <a href="minesweeper.html" class="game-card c-minesweeper reveal reveal-delay-5">
+      <div class="px-icon">
+        <div class="p" style="grid-column:1;grid-row:1;background:#b44aff"></div>
+        <div class="p" style="grid-column:2;grid-row:1;background:#9933dd"></div>
+        <div class="p" style="grid-column:4;grid-row:1;background:#9933dd"></div>
+        <div class="p" style="grid-column:5;grid-row:1;background:#b44aff"></div>
+        <div class="p" style="grid-column:3;grid-row:2;background:#ff3366"></div>
+        <div class="p" style="grid-column:1;grid-row:3;background:#9933dd"></div>
+        <div class="p" style="grid-column:5;grid-row:3;background:#b44aff"></div>
+        <div class="p" style="grid-column:2;grid-row:4;background:#b44aff"></div>
+        <div class="p" style="grid-column:3;grid-row:4;background:#ff3366"></div>
+        <div class="p" style="grid-column:4;grid-row:4;background:#b44aff"></div>
+        <div class="p" style="grid-column:1;grid-row:5;background:#b44aff"></div>
+        <div class="p" style="grid-column:5;grid-row:5;background:#9933dd"></div>
+      </div>
+      <div class="game-tag">Puzzle</div>
+      <div class="game-name">Minesweeper</div>
+      <div class="game-desc">Clear the grid without detonating a single mine.</div>
+      <div class="play-link">▸ Play</div>
+    </a>
+
+    <!-- 2048 -->
+    <a href="2048.html" class="game-card c-2048 reveal reveal-delay-6">
+      <div class="px-icon">
+        <div class="p" style="grid-column:1;grid-row:1;background:#554400"></div>
+        <div class="p" style="grid-column:2;grid-row:1;background:#554400"></div>
+        <div class="p" style="grid-column:4;grid-row:1;background:#887700"></div>
+        <div class="p" style="grid-column:5;grid-row:1;background:#887700"></div>
+        <div class="p" style="grid-column:1;grid-row:2;background:#554400"></div>
+        <div class="p" style="grid-column:2;grid-row:2;background:#554400"></div>
+        <div class="p" style="grid-column:4;grid-row:2;background:#887700"></div>
+        <div class="p" style="grid-column:5;grid-row:2;background:#887700"></div>
+        <div class="p" style="grid-column:1;grid-row:4;background:#bbaa00"></div>
+        <div class="p" style="grid-column:2;grid-row:4;background:#bbaa00"></div>
+        <div class="p" style="grid-column:4;grid-row:4;background:#ffe600"></div>
+        <div class="p" style="grid-column:5;grid-row:4;background:#ffe600"></div>
+        <div class="p" style="grid-column:1;grid-row:5;background:#bbaa00"></div>
+        <div class="p" style="grid-column:2;grid-row:5;background:#bbaa00"></div>
+        <div class="p" style="grid-column:4;grid-row:5;background:#ffe600"></div>
+        <div class="p" style="grid-column:5;grid-row:5;background:#ffe600"></div>
+      </div>
+      <div class="game-tag">Puzzle</div>
+      <div class="game-name">2048</div>
+      <div class="game-desc">Slide and merge numbered tiles. Reach the 2048 tile.</div>
+      <div class="play-link">▸ Play</div>
+    </a>
+
+    <!-- Tic Tac Toe -->
+    <a href="tictactoe.html" class="game-card c-tictactoe reveal reveal-delay-7">
+      <div class="px-icon">
+        <div class="p" style="grid-column:1;grid-row:1;background:#ff00aa"></div>
+        <div class="p" style="grid-column:3;grid-row:1;background:#cc0088"></div>
+        <div class="p" style="grid-column:5;grid-row:1;background:#ff00aa"></div>
+        <div class="p" style="grid-column:2;grid-row:2;background:#cc0088"></div>
+        <div class="p" style="grid-column:4;grid-row:2;background:#cc0088"></div>
+        <div class="p" style="grid-column:3;grid-row:3;background:#ff00aa"></div>
+        <div class="p" style="grid-column:2;grid-row:4;background:#cc0088"></div>
+        <div class="p" style="grid-column:4;grid-row:4;background:#cc0088"></div>
+        <div class="p" style="grid-column:1;grid-row:5;background:#ff00aa"></div>
+        <div class="p" style="grid-column:3;grid-row:5;background:#cc0088"></div>
+        <div class="p" style="grid-column:5;grid-row:5;background:#ff00aa"></div>
+      </div>
+      <div class="game-tag">Classic</div>
+      <div class="game-name">Tic Tac Toe</div>
+      <div class="game-desc">The timeless strategy game. Challenge a friend.</div>
+      <div class="play-link">▸ Play</div>
+    </a>
+
+    <!-- Whack-a-Mole -->
+    <a href="whackamole.html" class="game-card c-whack reveal reveal-delay-8">
+      <div class="px-icon">
+        <div class="p" style="grid-column:2;grid-row:1;background:#ff3399"></div>
+        <div class="p" style="grid-column:3;grid-row:1;background:#ff3399"></div>
+        <div class="p" style="grid-column:4;grid-row:1;background:#ff3399"></div>
+        <div class="p" style="grid-column:1;grid-row:2;background:#cc2277"></div>
+        <div class="p" style="grid-column:2;grid-row:2;background:#ff3399"></div>
+        <div class="p" style="grid-column:3;grid-row:2;background:#ff3399"></div>
+        <div class="p" style="grid-column:4;grid-row:2;background:#ff3399"></div>
+        <div class="p" style="grid-column:5;grid-row:2;background:#cc2277"></div>
+        <div class="p" style="grid-column:2;grid-row:3;background:#1a1a28"></div>
+        <div class="p" style="grid-column:4;grid-row:3;background:#1a1a28"></div>
+        <div class="p" style="grid-column:3;grid-row:4;background:#cc2277"></div>
+        <div class="p" style="grid-column:1;grid-row:5;background:rgba(255,255,255,0.08)"></div>
+        <div class="p" style="grid-column:2;grid-row:5;background:rgba(255,255,255,0.08)"></div>
+        <div class="p" style="grid-column:3;grid-row:5;background:rgba(255,255,255,0.08)"></div>
+        <div class="p" style="grid-column:4;grid-row:5;background:rgba(255,255,255,0.08)"></div>
+        <div class="p" style="grid-column:5;grid-row:5;background:rgba(255,255,255,0.08)"></div>
+      </div>
+      <div class="game-tag">Reflex</div>
+      <div class="game-name">Whack-a-Mole</div>
+      <div class="game-desc">30 seconds on the clock. Smash as many moles as you can.</div>
+      <div class="play-link">▸ Play</div>
+    </a>
+
+  </div>
+
+  <div class="footer reveal">
+    <div class="footer-logo"><span class="fp">Pixel</span><span class="fs">Storm</span></div>
+    <div class="footer-copy">© 2026 &middot; ALL GAMES RUN IN YOUR BROWSER</div>
+  </div>
+</div>
+
+<script>
+// ===== STARFIELD =====
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d');
+let W, H;
+const stars = [];
+const STAR_COUNT = 120;
+
+function resizeCanvas() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+for (let i = 0; i < STAR_COUNT; i++) {
+  stars.push({
+    x: Math.random() * 2000 - 500,
+    y: Math.random() * 2000 - 500,
+    z: Math.random() * 1000,
+    o: Math.random() * 0.5 + 0.1,
+  });
+}
+
+function drawStars() {
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2;
+  for (let s of stars) {
+    s.z -= 0.15;
+    if (s.z <= 0) { s.z = 1000; s.x = Math.random() * 2000 - 500; s.y = Math.random() * 2000 - 500; }
+    let sx = (s.x - 500) / s.z * 300 + cx;
+    let sy = (s.y - 500) / s.z * 300 + cy;
+    let r = Math.max(0.3, (1 - s.z / 1000) * 1.5);
+    let alpha = (1 - s.z / 1000) * s.o;
+    if (sx < -10 || sx > W + 10 || sy < -10 || sy > H + 10) continue;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fill();
+  }
+  requestAnimationFrame(drawStars);
+}
+drawStars();
+
+// ===== SCROLL REVEAL =====
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+reveals.forEach(el => observer.observe(el));
+</script>
 </body>
 </html>
