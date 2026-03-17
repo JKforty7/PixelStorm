@@ -13,7 +13,6 @@
     --bg: #0a0a0f;
     --neon-cyan: #00f0ff;
     --neon-magenta: #ff00aa;
-    --neon-yellow: #ffe600;
     --card-bg: #12121a;
     --card-border: #1e1e2e;
   }
@@ -26,23 +25,15 @@
     overflow-x: hidden;
   }
 
-  /* Scanline overlay */
   body::after {
     content: '';
     position: fixed;
     inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.08) 2px,
-      rgba(0, 0, 0, 0.08) 4px
-    );
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
     pointer-events: none;
     z-index: 100;
   }
 
-  /* Animated background grid */
   .bg-grid {
     position: fixed;
     inset: 0;
@@ -62,7 +53,7 @@
   .container {
     position: relative;
     z-index: 1;
-    max-width: 800px;
+    max-width: 860px;
     margin: 0 auto;
     padding: 60px 24px 80px;
     display: flex;
@@ -70,7 +61,6 @@
     align-items: center;
   }
 
-  /* Logo */
   .logo {
     font-family: 'Press Start 2P', monospace;
     font-size: clamp(28px, 6vw, 48px);
@@ -83,16 +73,8 @@
   .logo .storm { color: var(--neon-magenta); }
 
   @keyframes logoGlow {
-    0% {
-      text-shadow:
-        0 0 10px rgba(0, 240, 255, 0.4),
-        0 0 30px rgba(0, 240, 255, 0.15);
-    }
-    100% {
-      text-shadow:
-        0 0 15px rgba(255, 0, 170, 0.4),
-        0 0 40px rgba(255, 0, 170, 0.15);
-    }
+    0% { text-shadow: 0 0 10px rgba(0,240,255,0.4), 0 0 30px rgba(0,240,255,0.15); }
+    100% { text-shadow: 0 0 15px rgba(255,0,170,0.4), 0 0 40px rgba(255,0,170,0.15); }
   }
 
   .tagline {
@@ -100,15 +82,34 @@
     letter-spacing: 4px;
     text-transform: uppercase;
     color: #555;
-    margin-bottom: 60px;
+    margin-bottom: 50px;
     text-align: center;
   }
 
-  /* Game cards */
-  .games {
+  .category {
+    width: 100%;
+    margin-bottom: 36px;
+  }
+
+  .category-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-left: 4px;
+  }
+
+  .cat-action { color: #ff4444; }
+  .cat-arcade { color: #ff6a00; }
+  .cat-puzzle { color: #b44aff; }
+  .cat-classic { color: #4488ff; }
+  .cat-reflex { color: #ff3399; }
+
+  .games-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
     width: 100%;
   }
 
@@ -116,7 +117,7 @@
     background: var(--card-bg);
     border: 1px solid var(--card-border);
     border-radius: 8px;
-    padding: 32px 28px;
+    padding: 24px 22px;
     text-decoration: none;
     color: #e0e0e0;
     position: relative;
@@ -124,9 +125,7 @@
     transition: transform 0.25s ease, border-color 0.3s ease;
   }
 
-  .game-card:hover {
-    transform: translateY(-4px);
-  }
+  .game-card:hover { transform: translateY(-3px); }
 
   .game-card::before {
     content: '';
@@ -134,85 +133,108 @@
     top: 0; left: 0;
     width: 100%;
     height: 3px;
-    transition: opacity 0.3s ease;
   }
 
-  .game-card.shooter::before { background: var(--neon-cyan); }
-  .game-card.shooter:hover { border-color: rgba(0, 240, 255, 0.3); }
+  .game-card:hover .play-label { opacity: 1; }
 
-  .game-card.tictactoe::before { background: var(--neon-magenta); }
-  .game-card.tictactoe:hover { border-color: rgba(255, 0, 170, 0.3); }
+  .c-shooter::before { background: #00f0ff; }
+  .c-shooter:hover { border-color: rgba(0,240,255,0.3); }
+  .c-shooter .game-title { color: #00f0ff; }
+  .c-shooter .play-label { color: #00f0ff; border-color: rgba(0,240,255,0.3); }
+  .c-shooter:hover .play-label { background: rgba(0,240,255,0.1); }
 
-  .game-icon {
-    font-size: 36px;
-    margin-bottom: 16px;
-    display: block;
-  }
+  .c-asteroids::before { background: #4488ff; }
+  .c-asteroids:hover { border-color: rgba(68,136,255,0.3); }
+  .c-asteroids .game-title { color: #4488ff; }
+  .c-asteroids .play-label { color: #4488ff; border-color: rgba(68,136,255,0.3); }
+  .c-asteroids:hover .play-label { background: rgba(68,136,255,0.1); }
+
+  .c-snake::before { background: #39ff14; }
+  .c-snake:hover { border-color: rgba(57,255,20,0.3); }
+  .c-snake .game-title { color: #39ff14; }
+  .c-snake .play-label { color: #39ff14; border-color: rgba(57,255,20,0.3); }
+  .c-snake:hover .play-label { background: rgba(57,255,20,0.1); }
+
+  .c-breakout::before { background: #ff6a00; }
+  .c-breakout:hover { border-color: rgba(255,106,0,0.3); }
+  .c-breakout .game-title { color: #ff6a00; }
+  .c-breakout .play-label { color: #ff6a00; border-color: rgba(255,106,0,0.3); }
+  .c-breakout:hover .play-label { background: rgba(255,106,0,0.1); }
+
+  .c-minesweeper::before { background: #b44aff; }
+  .c-minesweeper:hover { border-color: rgba(180,74,255,0.3); }
+  .c-minesweeper .game-title { color: #b44aff; }
+  .c-minesweeper .play-label { color: #b44aff; border-color: rgba(180,74,255,0.3); }
+  .c-minesweeper:hover .play-label { background: rgba(180,74,255,0.1); }
+
+  .c-2048::before { background: #ffe600; }
+  .c-2048:hover { border-color: rgba(255,230,0,0.3); }
+  .c-2048 .game-title { color: #ffe600; }
+  .c-2048 .play-label { color: #ffe600; border-color: rgba(255,230,0,0.3); }
+  .c-2048:hover .play-label { background: rgba(255,230,0,0.1); }
+
+  .c-tictactoe::before { background: #ff00aa; }
+  .c-tictactoe:hover { border-color: rgba(255,0,170,0.3); }
+  .c-tictactoe .game-title { color: #ff00aa; }
+  .c-tictactoe .play-label { color: #ff00aa; border-color: rgba(255,0,170,0.3); }
+  .c-tictactoe:hover .play-label { background: rgba(255,0,170,0.1); }
+
+  .c-whack::before { background: #ff3399; }
+  .c-whack:hover { border-color: rgba(255,51,153,0.3); }
+  .c-whack .game-title { color: #ff3399; }
+  .c-whack .play-label { color: #ff3399; border-color: rgba(255,51,153,0.3); }
+  .c-whack:hover .play-label { background: rgba(255,51,153,0.1); }
+
+  .game-icon { font-size: 28px; margin-bottom: 12px; display: block; }
 
   .game-title {
     font-family: 'Press Start 2P', monospace;
-    font-size: 14px;
-    margin-bottom: 12px;
+    font-size: 12px;
+    margin-bottom: 8px;
     line-height: 1.6;
   }
 
-  .shooter .game-title { color: var(--neon-cyan); }
-  .tictactoe .game-title { color: var(--neon-magenta); }
-
-  .game-desc {
-    font-size: 14px;
-    color: #888;
-    line-height: 1.6;
-  }
+  .game-desc { font-size: 13px; color: #666; line-height: 1.5; }
 
   .play-label {
     display: inline-block;
-    margin-top: 20px;
+    margin-top: 16px;
     font-family: 'Press Start 2P', monospace;
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 2px;
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: 4px;
-    transition: background 0.2s ease;
+    border: 1px solid;
+    opacity: 0.6;
+    transition: opacity 0.2s, background 0.2s;
   }
 
-  .shooter .play-label {
-    color: var(--neon-cyan);
-    border: 1px solid rgba(0, 240, 255, 0.3);
-  }
-  .shooter:hover .play-label {
-    background: rgba(0, 240, 255, 0.1);
-  }
-
-  .tictactoe .play-label {
-    color: var(--neon-magenta);
-    border: 1px solid rgba(255, 0, 170, 0.3);
-  }
-  .tictactoe:hover .play-label {
-    background: rgba(255, 0, 170, 0.1);
-  }
-
-  /* Footer */
   .footer {
-    margin-top: 80px;
+    margin-top: 60px;
     font-size: 12px;
     color: #333;
     text-align: center;
     letter-spacing: 1px;
   }
 
-  /* Entrance animation */
   .game-card {
     opacity: 0;
-    transform: translateY(20px);
-    animation: fadeUp 0.5s ease forwards;
+    transform: translateY(16px);
+    animation: fadeUp 0.4s ease forwards;
   }
-  .game-card:nth-child(1) { animation-delay: 0.2s; }
-  .game-card:nth-child(2) { animation-delay: 0.35s; }
 
   @keyframes fadeUp {
     to { opacity: 1; transform: translateY(0); }
   }
+
+  .category:nth-child(2) .game-card:nth-child(1) { animation-delay: 0.08s; }
+  .category:nth-child(2) .game-card:nth-child(2) { animation-delay: 0.16s; }
+  .category:nth-child(3) .game-card:nth-child(1) { animation-delay: 0.12s; }
+  .category:nth-child(3) .game-card:nth-child(2) { animation-delay: 0.20s; }
+  .category:nth-child(4) .game-card:nth-child(1) { animation-delay: 0.16s; }
+  .category:nth-child(4) .game-card:nth-child(2) { animation-delay: 0.24s; }
+  .category:nth-child(5) .game-card:nth-child(1) { animation-delay: 0.20s; }
+  .category:nth-child(6) .game-card:nth-child(1) { animation-delay: 0.24s; }
 </style>
 </head>
 <body>
@@ -221,20 +243,82 @@
     <h1 class="logo"><span class="pixel">Pixel</span><span class="storm">Storm</span></h1>
     <p class="tagline">Browser-based retro games</p>
 
-    <div class="games">
-      <a href="shooter.html" class="game-card shooter">
-        <span class="game-icon">🔫</span>
-        <div class="game-title">Pixel Storm Shooter</div>
-        <div class="game-desc">Top-down 2D shooter. Survive waves of enemies in retro pixel style.</div>
-        <span class="play-label">▶ PLAY</span>
-      </a>
+    <div class="category">
+      <div class="category-title cat-action">Action</div>
+      <div class="games-row">
+        <a href="shooter.html" class="game-card c-shooter">
+          <span class="game-icon">🔫</span>
+          <div class="game-title">Pixel Storm Shooter</div>
+          <div class="game-desc">Top-down 2D shooter. Survive waves of enemies.</div>
+          <span class="play-label">▶ PLAY</span>
+        </a>
+        <a href="asteroids.html" class="game-card c-asteroids">
+          <span class="game-icon">☄️</span>
+          <div class="game-title">Asteroids</div>
+          <div class="game-desc">Pilot your ship. Blast rocks. Don't get hit.</div>
+          <span class="play-label">▶ PLAY</span>
+        </a>
+      </div>
+    </div>
 
-      <a href="tictactoe.html" class="game-card tictactoe">
-        <span class="game-icon">⭕</span>
-        <div class="game-title">Tic Tac Toe</div>
-        <div class="game-desc">The classic strategy game. Challenge a friend or test your wits.</div>
-        <span class="play-label">▶ PLAY</span>
-      </a>
+    <div class="category">
+      <div class="category-title cat-arcade">Arcade</div>
+      <div class="games-row">
+        <a href="snake.html" class="game-card c-snake">
+          <span class="game-icon">🐍</span>
+          <div class="game-title">Snake</div>
+          <div class="game-desc">Eat. Grow. Don't crash into yourself.</div>
+          <span class="play-label">▶ PLAY</span>
+        </a>
+        <a href="breakout.html" class="game-card c-breakout">
+          <span class="game-icon">🧱</span>
+          <div class="game-title">Breakout</div>
+          <div class="game-desc">Smash bricks with a bouncing ball.</div>
+          <span class="play-label">▶ PLAY</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="category">
+      <div class="category-title cat-puzzle">Puzzle</div>
+      <div class="games-row">
+        <a href="minesweeper.html" class="game-card c-minesweeper">
+          <span class="game-icon">💣</span>
+          <div class="game-title">Minesweeper</div>
+          <div class="game-desc">Clear the board. Avoid the mines.</div>
+          <span class="play-label">▶ PLAY</span>
+        </a>
+        <a href="2048.html" class="game-card c-2048">
+          <span class="game-icon">🔢</span>
+          <div class="game-title">2048</div>
+          <div class="game-desc">Slide and merge tiles to reach 2048.</div>
+          <span class="play-label">▶ PLAY</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="category">
+      <div class="category-title cat-classic">Classic</div>
+      <div class="games-row">
+        <a href="tictactoe.html" class="game-card c-tictactoe">
+          <span class="game-icon">⭕</span>
+          <div class="game-title">Tic Tac Toe</div>
+          <div class="game-desc">The classic strategy game for two.</div>
+          <span class="play-label">▶ PLAY</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="category">
+      <div class="category-title cat-reflex">Reflex</div>
+      <div class="games-row">
+        <a href="whackamole.html" class="game-card c-whack">
+          <span class="game-icon">🔨</span>
+          <div class="game-title">Whack-a-Mole</div>
+          <div class="game-desc">30 seconds. Smash as many moles as you can.</div>
+          <span class="play-label">▶ PLAY</span>
+        </a>
+      </div>
     </div>
 
     <div class="footer">PIXELSTORM © 2026</div>
