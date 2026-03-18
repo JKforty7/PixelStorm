@@ -14,6 +14,7 @@
     --neon-orange: #ff6a00;
     --neon-orange-dim: #993f00;
     --neon-cyan: #00f0ff;
+    --neon-magenta: #ff00aa;
     --card-bg: #12121a;
     --card-border: #1e1e2e;
   }
@@ -163,9 +164,43 @@
     padding: 12px 24px;
     border-radius: 4px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, border-color 0.2s;
+    min-width: 180px;
   }
-  .btn:hover { background: rgba(255, 106, 0, 0.1); }
+  .btn:hover { background: rgba(255, 106, 0, 0.1); border-color: rgba(255, 106, 0, 0.6); }
+
+  .btn-hyper {
+    color: var(--neon-magenta);
+    border-color: rgba(255, 0, 170, 0.3);
+  }
+  .btn-hyper:hover { background: rgba(255, 0, 170, 0.1); border-color: rgba(255, 0, 170, 0.6); }
+
+  .mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .mode-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #555;
+    margin-top: 4px;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .mode-tag {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    margin-bottom: 16px;
+  }
+
+  .mode-tag.classic { color: var(--neon-orange); background: rgba(255,106,0,0.1); border: 1px solid rgba(255,106,0,0.2); }
+  .mode-tag.hyper { color: var(--neon-magenta); background: rgba(255,0,170,0.1); border: 1px solid rgba(255,0,170,0.2); }
 
   .controls-hint {
     margin-top: 16px;
@@ -196,17 +231,34 @@
     <div class="overlay" id="startScreen">
       <div class="overlay-title">BREAKOUT</div>
       <div class="overlay-sub">Smash all the bricks.<br>Don't let the ball drop.</div>
-      <button class="btn" onclick="startGame()">START</button>
+      <div class="mode-buttons">
+        <div>
+          <button class="btn" onclick="startGame('classic')">CLASSIC</button>
+          <div class="mode-label">Single ball, rising speed</div>
+        </div>
+        <div>
+          <button class="btn btn-hyper" onclick="startGame('hyper')">⚡ HYPER</button>
+          <div class="mode-label">Catch powerups to multiply<br>balls and boost speed</div>
+        </div>
+      </div>
     </div>
     <div class="overlay hidden" id="deathScreen">
       <div class="overlay-title">GAME OVER</div>
       <div class="overlay-score" id="finalScore">Score: 0</div>
-      <button class="btn" onclick="startGame()">RETRY</button>
+      <div class="mode-tag" id="deathMode"></div>
+      <div class="mode-buttons">
+        <button class="btn" id="retryBtn" onclick="startGame(currentMode)">RETRY</button>
+        <button class="btn" style="font-size:9px;padding:10px 20px;color:#888;border-color:rgba(255,255,255,0.15)" onclick="showMenu()">CHANGE MODE</button>
+      </div>
     </div>
     <div class="overlay hidden" id="winScreen">
       <div class="overlay-title">YOU WIN!</div>
       <div class="overlay-score" id="winScore">Score: 0</div>
-      <button class="btn" onclick="startGame()">PLAY AGAIN</button>
+      <div class="mode-tag" id="winMode"></div>
+      <div class="mode-buttons">
+        <button class="btn" onclick="startGame(currentMode)">PLAY AGAIN</button>
+        <button class="btn" style="font-size:9px;padding:10px 20px;color:#888;border-color:rgba(255,255,255,0.15)" onclick="showMenu()">CHANGE MODE</button>
+      </div>
     </div>
   </div>
 
@@ -259,11 +311,36 @@ const ROW_GLOW = [
 ];
 const ROW_POINTS = [7, 7, 5, 5, 3, 3];
 
-let bricks, paddle, ball, score, lives, hiScore, running, animFrame;
+// Powerup settings for hyper mode
+const POWERUP_DROP_CHANCE = 0.25;
+const POWERUP_SPEED = 2;
+const POWERUP_W = 24;
+const POWERUP_H = 12;
+
+let bricks, paddle, balls, score, lives, hiScore, running, animFrame;
+let currentMode = 'classic';
+let powerups = [];
+let particles = [];
 let keysDown = {};
+let lastTime = 0;
+let bricksDestroyed = 0;
+let totalBricks = 0;
+
+// Base speed — higher than original
+const BASE_SPEED = 4.5;
+const MAX_SPEED_CLASSIC = 8;
+const MAX_SPEED_HYPER = 12;
 
 hiScore = parseInt(localStorage.getItem('breakout_hi') || '0');
 document.getElementById('hiscore').textContent = hiScore;
+
+function showMenu() {
+  document.getElementById('startScreen').classList.remove('hidden');
+  document.getElementById('deathScreen').classList.add('hidden');
+  document.getElementById('winScreen').classList.add('hidden');
+  running = false;
+  cancelAnimationFrame(animFrame);
+}
 
 function initBricks() {
   bricks = [];
@@ -281,78 +358,175 @@ function initBricks() {
         color: ROW_COLORS[r],
         glow: ROW_GLOW[r],
         points: ROW_POINTS[r],
+        row: r,
       });
     }
   }
+  totalBricks = bricks.length;
+  bricksDestroyed = 0;
 }
 
-function resetBall() {
-  ball = {
-    x: LOGIC_W / 2,
-    y: LOGIC_H - 50,
-    dx: (Math.random() > 0.5 ? 1 : -1) * 3,
-    dy: -3,
+function makeBall(x, y, angle, speed) {
+  return {
+    x: x,
+    y: y,
+    dx: Math.sin(angle) * speed,
+    dy: -Math.cos(angle) * speed,
     r: BALL_R,
-    speed: 3,
+    speed: speed,
   };
 }
 
-function startGame() {
+function resetBall() {
+  const speed = BASE_SPEED;
+  const angle = (Math.random() > 0.5 ? 1 : -1) * (0.3 + Math.random() * 0.5);
+  balls = [makeBall(LOGIC_W / 2, LOGIC_H - 50, angle, speed)];
+}
+
+function getCurrentSpeed() {
+  // Speed scales with percentage of bricks destroyed
+  const progress = totalBricks > 0 ? bricksDestroyed / totalBricks : 0;
+  const maxSpd = currentMode === 'hyper' ? MAX_SPEED_HYPER : MAX_SPEED_CLASSIC;
+  return BASE_SPEED + (maxSpd - BASE_SPEED) * progress;
+}
+
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const spd = 1 + Math.random() * 3;
+    particles.push({
+      x, y,
+      dx: Math.cos(a) * spd,
+      dy: Math.sin(a) * spd,
+      life: 0.4 + Math.random() * 0.3,
+      maxLife: 0.4 + Math.random() * 0.3,
+      color: color,
+      size: 2 + Math.random() * 3,
+    });
+  }
+}
+
+function startGame(mode) {
+  currentMode = mode;
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('deathScreen').classList.add('hidden');
   document.getElementById('winScreen').classList.add('hidden');
   score = 0;
   lives = 3;
+  powerups = [];
+  particles = [];
   document.getElementById('score').textContent = '0';
   document.getElementById('lives').textContent = '3';
   paddle = { x: LOGIC_W / 2 - PADDLE_W / 2, y: LOGIC_H - 28, w: PADDLE_W, h: PADDLE_H };
   initBricks();
   resetBall();
   running = true;
+  lastTime = performance.now();
   cancelAnimationFrame(animFrame);
   loop();
 }
 
-function loop() {
+function loop(now) {
   if (!running) return;
-  update();
+  if (!now) now = performance.now();
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+  update(dt);
   draw();
   animFrame = requestAnimationFrame(loop);
 }
 
-function update() {
+function update(dt) {
+  const step = dt * 60; // normalize to ~60fps
+
   // Paddle keyboard
-  if (keysDown['ArrowLeft'] || keysDown['a'] || keysDown['A']) paddle.x -= 5;
-  if (keysDown['ArrowRight'] || keysDown['d'] || keysDown['D']) paddle.x += 5;
+  const paddleSpeed = 6 * step;
+  if (keysDown['ArrowLeft'] || keysDown['a'] || keysDown['A']) paddle.x -= paddleSpeed;
+  if (keysDown['ArrowRight'] || keysDown['d'] || keysDown['D']) paddle.x += paddleSpeed;
   paddle.x = Math.max(0, Math.min(LOGIC_W - paddle.w, paddle.x));
 
-  // Ball movement
-  ball.x += ball.dx;
-  ball.y += ball.dy;
+  const targetSpeed = getCurrentSpeed();
 
-  // Wall bounces
-  if (ball.x - ball.r <= 0) { ball.x = ball.r; ball.dx = Math.abs(ball.dx); }
-  if (ball.x + ball.r >= LOGIC_W) { ball.x = LOGIC_W - ball.r; ball.dx = -Math.abs(ball.dx); }
-  if (ball.y - ball.r <= 0) { ball.y = ball.r; ball.dy = Math.abs(ball.dy); }
+  // Update each ball
+  for (let bi = balls.length - 1; bi >= 0; bi--) {
+    const ball = balls[bi];
 
-  // Paddle bounce
-  if (ball.dy > 0 &&
-      ball.y + ball.r >= paddle.y &&
-      ball.y + ball.r <= paddle.y + paddle.h + 4 &&
-      ball.x >= paddle.x &&
-      ball.x <= paddle.x + paddle.w) {
-    let hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
-    let angle = hit * (Math.PI / 3);
-    ball.dx = ball.speed * Math.sin(angle);
-    ball.dy = -ball.speed * Math.cos(angle);
-    ball.y = paddle.y - ball.r;
+    // Ramp ball speed toward target
+    ball.speed += (targetSpeed - ball.speed) * 0.05;
 
-    // Speed up slightly over time
-    if (ball.speed < 5.5) ball.speed += 0.05;
+    // Normalize direction and apply speed
+    const mag = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy) || 1;
+    ball.dx = (ball.dx / mag) * ball.speed;
+    ball.dy = (ball.dy / mag) * ball.speed;
+
+    ball.x += ball.dx * step;
+    ball.y += ball.dy * step;
+
+    // Wall bounces
+    if (ball.x - ball.r <= 0) { ball.x = ball.r; ball.dx = Math.abs(ball.dx); }
+    if (ball.x + ball.r >= LOGIC_W) { ball.x = LOGIC_W - ball.r; ball.dx = -Math.abs(ball.dx); }
+    if (ball.y - ball.r <= 0) { ball.y = ball.r; ball.dy = Math.abs(ball.dy); }
+
+    // Paddle bounce
+    if (ball.dy > 0 &&
+        ball.y + ball.r >= paddle.y &&
+        ball.y + ball.r <= paddle.y + paddle.h + 6 &&
+        ball.x >= paddle.x - 2 &&
+        ball.x <= paddle.x + paddle.w + 2) {
+      const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+      const angle = hit * (Math.PI / 3);
+      ball.dx = ball.speed * Math.sin(angle);
+      ball.dy = -ball.speed * Math.cos(angle);
+      ball.y = paddle.y - ball.r;
+    }
+
+    // Ball falls below
+    if (ball.y - ball.r > LOGIC_H) {
+      balls.splice(bi, 1);
+    }
+
+    // Brick collision
+    for (let b of bricks) {
+      if (!b.alive) continue;
+      if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w &&
+          ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
+        b.alive = false;
+        bricksDestroyed++;
+        score += b.points;
+        document.getElementById('score').textContent = score;
+        spawnParticles(b.x + b.w / 2, b.y + b.h / 2, b.color, 6);
+
+        // Hyper mode: chance to drop powerup
+        if (currentMode === 'hyper' && Math.random() < POWERUP_DROP_CHANCE) {
+          powerups.push({
+            x: b.x + b.w / 2 - POWERUP_W / 2,
+            y: b.y + b.h,
+            w: POWERUP_W,
+            h: POWERUP_H,
+            dy: POWERUP_SPEED,
+            flash: 0,
+          });
+        }
+
+        // Determine bounce side
+        const overlapLeft = (ball.x + ball.r) - b.x;
+        const overlapRight = (b.x + b.w) - (ball.x - ball.r);
+        const overlapTop = (ball.y + ball.r) - b.y;
+        const overlapBottom = (b.y + b.h) - (ball.y - ball.r);
+        const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+
+        if (minOverlap === overlapTop || minOverlap === overlapBottom) {
+          ball.dy = -ball.dy;
+        } else {
+          ball.dx = -ball.dx;
+        }
+        break;
+      }
+    }
   }
 
-  // Ball falls below
-  if (ball.y - ball.r > LOGIC_H) {
+  // All balls lost
+  if (balls.length === 0) {
     lives--;
     document.getElementById('lives').textContent = lives;
     if (lives <= 0) {
@@ -360,31 +534,60 @@ function update() {
       return;
     }
     resetBall();
+    // Reset speed for the new ball set based on current progress
   }
 
-  // Brick collision
-  for (let b of bricks) {
-    if (!b.alive) continue;
-    if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w &&
-        ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
-      b.alive = false;
-      score += b.points;
-      document.getElementById('score').textContent = score;
+  // Update powerups (hyper mode)
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    const p = powerups[i];
+    p.y += p.dy * step;
+    p.flash += dt * 6;
 
-      // Determine bounce side
-      let overlapLeft = (ball.x + ball.r) - b.x;
-      let overlapRight = (b.x + b.w) - (ball.x - ball.r);
-      let overlapTop = (ball.y + ball.r) - b.y;
-      let overlapBottom = (b.y + b.h) - (ball.y - ball.r);
-      let minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-
-      if (minOverlap === overlapTop || minOverlap === overlapBottom) {
-        ball.dy = -ball.dy;
-      } else {
-        ball.dx = -ball.dx;
+    // Paddle catch
+    if (p.y + p.h >= paddle.y &&
+        p.y <= paddle.y + paddle.h &&
+        p.x + p.w >= paddle.x &&
+        p.x <= paddle.x + paddle.w) {
+      // Double all current balls
+      const currentBalls = [...balls];
+      for (const b of currentBalls) {
+        // Spawn a new ball going in a mirrored/offset direction
+        const newBall = makeBall(b.x, b.y, 0, b.speed);
+        newBall.dx = -b.dx + (Math.random() - 0.5) * 1.5;
+        newBall.dy = b.dy - Math.abs(Math.random() * 0.5);
+        // Normalize
+        const m = Math.sqrt(newBall.dx * newBall.dx + newBall.dy * newBall.dy) || 1;
+        newBall.dx = (newBall.dx / m) * newBall.speed;
+        newBall.dy = (newBall.dy / m) * newBall.speed;
+        // Make sure it goes upward
+        if (newBall.dy > 0) newBall.dy = -newBall.dy;
+        balls.push(newBall);
       }
-      break;
+      // Speed boost
+      for (const b of balls) {
+        b.speed = Math.min(currentMode === 'hyper' ? MAX_SPEED_HYPER : MAX_SPEED_CLASSIC, b.speed + 0.8);
+      }
+      // Score bonus
+      score += 50;
+      document.getElementById('score').textContent = score;
+      spawnParticles(p.x + p.w / 2, p.y + p.h / 2, '#ff00aa', 12);
+      powerups.splice(i, 1);
+      continue;
     }
+
+    // Off screen
+    if (p.y > LOGIC_H + 20) {
+      powerups.splice(i, 1);
+    }
+  }
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.dx * step;
+    p.y += p.dy * step;
+    p.life -= dt;
+    if (p.life <= 0) particles.splice(i, 1);
   }
 
   // Win check
@@ -398,6 +601,14 @@ function draw() {
   ctx.fillStyle = '#0d0d14';
   ctx.fillRect(0, 0, W, H);
 
+  // Particles (behind everything)
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.fillRect((p.x - p.size / 2) * s, (p.y - p.size / 2) * s, p.size * s, p.size * s);
+  }
+  ctx.globalAlpha = 1;
+
   // Bricks
   for (let b of bricks) {
     if (!b.alive) continue;
@@ -410,6 +621,24 @@ function draw() {
     ctx.shadowBlur = 0;
   }
 
+  // Powerups (hyper mode)
+  for (const p of powerups) {
+    const pulse = 0.7 + 0.3 * Math.sin(p.flash * Math.PI);
+    ctx.fillStyle = `rgba(255, 0, 170, ${pulse})`;
+    ctx.shadowColor = 'rgba(255, 0, 170, 0.6)';
+    ctx.shadowBlur = 8 * s;
+    ctx.beginPath();
+    ctx.roundRect(p.x * s, p.y * s, p.w * s, p.h * s, 3 * s);
+    ctx.fill();
+    // Label
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.font = `${7 * s}px "Press Start 2P", monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('x2', (p.x + p.w / 2) * s, (p.y + p.h / 2 + 3) * s);
+    ctx.textAlign = 'left';
+  }
+
   // Paddle
   ctx.fillStyle = '#e0e0e0';
   ctx.shadowColor = 'rgba(224,224,224,0.3)';
@@ -419,14 +648,33 @@ function draw() {
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  // Ball
-  ctx.fillStyle = '#ffffff';
-  ctx.shadowColor = 'rgba(255,255,255,0.6)';
-  ctx.shadowBlur = 10 * s;
-  ctx.beginPath();
-  ctx.arc(ball.x * s, ball.y * s, ball.r * s, 0, Math.PI * 2);
-  ctx.fill();
+  // Balls
+  for (const ball of balls) {
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(255,255,255,0.6)';
+    ctx.shadowBlur = 10 * s;
+    ctx.beginPath();
+    ctx.arc(ball.x * s, ball.y * s, ball.r * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.shadowBlur = 0;
+
+  // Ball count indicator (hyper mode)
+  if (currentMode === 'hyper' && balls.length > 1) {
+    ctx.fillStyle = 'rgba(255, 0, 170, 0.6)';
+    ctx.font = `${8 * s}px "Press Start 2P", monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText('BALLS: ' + balls.length, (LOGIC_W - 8) * s, (LOGIC_H - 8) * s);
+    ctx.textAlign = 'left';
+  }
+
+  // Speed indicator
+  if (balls.length > 0) {
+    const spdPct = Math.round((balls[0].speed / (currentMode === 'hyper' ? MAX_SPEED_HYPER : MAX_SPEED_CLASSIC)) * 100);
+    ctx.fillStyle = spdPct > 80 ? 'rgba(255,51,102,0.5)' : 'rgba(255,106,0,0.35)';
+    ctx.font = `${7 * s}px "Press Start 2P", monospace`;
+    ctx.fillText('SPD ' + spdPct + '%', 8 * s, (LOGIC_H - 8) * s);
+  }
 }
 
 function drawStatic() {
@@ -444,6 +692,9 @@ function gameOver() {
     document.getElementById('hiscore').textContent = hiScore;
   }
   document.getElementById('finalScore').textContent = 'Score: ' + score;
+  const modeTag = document.getElementById('deathMode');
+  modeTag.textContent = currentMode === 'hyper' ? '⚡ HYPER' : 'CLASSIC';
+  modeTag.className = 'mode-tag ' + currentMode;
   document.getElementById('deathScreen').classList.remove('hidden');
 }
 
@@ -456,6 +707,9 @@ function win() {
     document.getElementById('hiscore').textContent = hiScore;
   }
   document.getElementById('winScore').textContent = 'Score: ' + score;
+  const modeTag = document.getElementById('winMode');
+  modeTag.textContent = currentMode === 'hyper' ? '⚡ HYPER' : 'CLASSIC';
+  modeTag.className = 'mode-tag ' + currentMode;
   document.getElementById('winScreen').classList.remove('hidden');
 }
 
