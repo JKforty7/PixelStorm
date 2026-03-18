@@ -239,7 +239,7 @@
   </div>
 
   <div class="controls-hint">
-    ← → to rotate &nbsp;|&nbsp; ↑ to thrust &nbsp;|&nbsp; Space to shoot
+    WASD / Arrow Keys to move &nbsp;|&nbsp; Space to shoot
   </div>
 
   <div class="mobile-controls">
@@ -288,9 +288,9 @@ class Ship {
     this.thrusting = false;
   }
   update() {
-    if (keys['ArrowLeft'] || keys['a']) this.angle -= 0.06;
-    if (keys['ArrowRight'] || keys['d']) this.angle += 0.06;
-    this.thrusting = keys['ArrowUp'] || keys['w'];
+    if (keys['ArrowLeft'] || keys['a'] || keys['A']) this.angle -= 0.06;
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) this.angle += 0.06;
+    this.thrusting = keys['ArrowUp'] || keys['w'] || keys['W'];
     if (this.thrusting) {
       this.dx += Math.cos(this.angle) * 0.12;
       this.dy += Math.sin(this.angle) * 0.12;
