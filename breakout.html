@@ -263,7 +263,7 @@
   </div>
 
   <div class="controls-hint">
-    Mouse or Arrow keys to move paddle<br>
+    Mouse or Arrow keys to move paddle &nbsp;&nbsp; P to pause<br>
     Touch and drag on mobile
   </div>
 </div>
@@ -317,7 +317,7 @@ const POWERUP_SPEED = 2;
 const POWERUP_W = 24;
 const POWERUP_H = 12;
 
-let bricks, paddle, balls, score, lives, hiScore, running, animFrame;
+let bricks, paddle, balls, score, lives, hiScore, running, paused, animFrame;
 let currentMode = 'classic';
 let powerups = [];
 let particles = [];
@@ -421,6 +421,7 @@ function startGame(mode) {
   initBricks();
   resetBall();
   running = true;
+  paused = false;
   lastTime = performance.now();
   cancelAnimationFrame(animFrame);
   loop();
@@ -429,10 +430,27 @@ function startGame(mode) {
 function loop(now) {
   if (!running) return;
   if (!now) now = performance.now();
-  const dt = Math.min((now - lastTime) / 1000, 0.05);
-  lastTime = now;
-  update(dt);
+  if (!paused) {
+    const dt = Math.min((now - lastTime) / 1000, 0.05);
+    lastTime = now;
+    update(dt);
+  } else {
+    lastTime = now;
+  }
   draw();
+  if (paused) {
+    const s = scale;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff6a00';
+    ctx.font = `bold ${18 * s}px "Press Start 2P", monospace`;
+    ctx.fillText('PAUSED', W / 2, H / 2 - 8 * s);
+    ctx.fillStyle = '#888';
+    ctx.font = `${7 * s}px "Press Start 2P", monospace`;
+    ctx.fillText('Press P to resume', W / 2, H / 2 + 16 * s);
+    ctx.textAlign = 'left';
+  }
   animFrame = requestAnimationFrame(loop);
 }
 
@@ -715,6 +733,7 @@ function win() {
 
 // Input
 document.addEventListener('keydown', e => {
+  if ((e.key === 'p' || e.key === 'P') && running) { paused = !paused; return; }
   keysDown[e.key] = true;
   if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) e.preventDefault();
 });

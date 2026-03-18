@@ -91,7 +91,15 @@ function playSound(type) {
 // ── Input ──
 const keys = new Set();
 let mouseX = 400, mouseY = 300, mouseDown = false, mouseClicked = false;
-window.addEventListener('keydown', e => { keys.add(e.key.toLowerCase()); e.preventDefault(); });
+let prevState = S.MENU;
+window.addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 'p') {
+    if (state === S.PLAYING || state === S.LEVEL_TRANS) { prevState = state; state = S.PAUSED; }
+    else if (state === S.PAUSED) { state = prevState; lastTime = performance.now(); }
+    return;
+  }
+  keys.add(e.key.toLowerCase()); e.preventDefault();
+});
 window.addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); });
 canvas.addEventListener('mousemove', e => {
   const r = canvas.getBoundingClientRect();
@@ -103,7 +111,7 @@ canvas.addEventListener('mouseup', () => { mouseDown = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 // ── State ──
-const S = { MENU: 0, PLAYING: 1, LEVEL_TRANS: 2, GAME_OVER: 3 };
+const S = { MENU: 0, PLAYING: 1, LEVEL_TRANS: 2, GAME_OVER: 3, PAUSED: 4 };
 let state = S.MENU;
 
 // ── Game vars ──
@@ -350,6 +358,10 @@ function update(dt) {
     mouseClicked = false;
     return;
   }
+  if (state === S.PAUSED) {
+    mouseClicked = false;
+    return;
+  }
   if (state === S.GAME_OVER) {
     if (mouseClicked) { state = S.MENU; initMenuParticles(); }
     mouseClicked = false;
@@ -575,7 +587,8 @@ function draw() {
     ctx.font = '12px monospace';
     ctx.fillText('W / ↑  Up    S / ↓  Down', 400, 410);
     ctx.fillText('A / ←  Left   D / →  Right', 400, 430);
-    ctx.fillText('Mouse to aim, Click to shoot', 400, 460);
+    ctx.fillText('Mouse to aim, Click to shoot', 400, 455);
+    ctx.fillText('P to pause', 400, 475);
     ctx.textAlign = 'left';
     ctx.restore();
     drawCrosshair();
@@ -646,6 +659,20 @@ function draw() {
     ctx.fillStyle = '#888';
     ctx.font = '14px monospace';
     ctx.fillText('Get ready...', 400, 370);
+    ctx.textAlign = 'left';
+  }
+
+  // Pause overlay
+  if (state === S.PAUSED) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, 800, 600);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff0';
+    ctx.font = 'bold 36px monospace';
+    ctx.fillText('PAUSED', 400, 280);
+    ctx.fillStyle = '#888';
+    ctx.font = '14px monospace';
+    ctx.fillText('Press P to resume', 400, 320);
     ctx.textAlign = 'left';
   }
 

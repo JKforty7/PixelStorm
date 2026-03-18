@@ -369,7 +369,7 @@
 
   <div class="controls-hint">
     Click or tap the moles as fast as you can!<br>
-    30 seconds. Go!
+    30 seconds. Go! &nbsp;&nbsp; P to pause
   </div>
 </div>
 
@@ -377,10 +377,11 @@
 const HOLES = 9;
 const GAME_TIME = 30;
 
-let score, hiScore, timeLeft, gameActive, gameLoop, spawnLoop;
+let score, hiScore, timeLeft, gameActive, paused, gameLoop, spawnLoop;
 let combo, maxCombo, hits, misses, totalMoles;
 let holes = [];
 let moleTimers = [];
+let pauseOverlay = null;
 
 hiScore = parseInt(localStorage.getItem('whack_hi') || '0');
 document.getElementById('hiscore').textContent = hiScore;
@@ -424,6 +425,8 @@ function startGame() {
   misses = 0;
   totalMoles = 0;
   gameActive = true;
+  paused = false;
+  if (pauseOverlay) { pauseOverlay.remove(); pauseOverlay = null; }
 
   document.getElementById('score').textContent = '0';
   document.getElementById('timer').textContent = GAME_TIME;
@@ -526,7 +529,7 @@ function hideMole(idx) {
 }
 
 function whack(idx) {
-  if (!gameActive) return;
+  if (!gameActive || paused) return;
   let hole = holes[idx];
   if (!hole.active || hole.whacked) return;
 
@@ -626,6 +629,28 @@ function endGame() {
     document.getElementById('endScreen').classList.remove('hidden');
   }, 400);
 }
+
+function togglePause() {
+  if (!gameActive) return;
+  paused = !paused;
+  if (paused) {
+    clearInterval(gameLoop);
+    clearTimeout(spawnLoop);
+    // Show pause overlay
+    pauseOverlay = document.createElement('div');
+    pauseOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50;';
+    pauseOverlay.innerHTML = '<div style="font-family:Press Start 2P,monospace;font-size:24px;color:#ff3399;margin-bottom:12px;text-shadow:0 0 15px rgba(255,51,153,0.4)">PAUSED</div><div style="font-family:Press Start 2P,monospace;font-size:9px;color:#888">Press P to resume</div>';
+    document.body.appendChild(pauseOverlay);
+  } else {
+    if (pauseOverlay) { pauseOverlay.remove(); pauseOverlay = null; }
+    gameLoop = setInterval(tick, 1000);
+    scheduleSpawn();
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'p' || e.key === 'P') togglePause();
+});
 
 buildBoard();
 </script>
